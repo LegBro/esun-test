@@ -17,15 +17,7 @@ public class EmployeeService {
 
     public List<Employee> getAllEmployees(){
       try {
-        return employeeRepository.getAllEmployees()
-        .stream()
-        .map(employee -> new Employee(
-          employee.getId(),
-          employee.getName(),
-          employee.getEmail(),
-          employee.getFloorSeatSeq()
-        ))
-        .toList();
+        return employeeRepository.getAllEmployees();
       } catch (ClassNotFoundException e) {
         System.out.println("CLASS NOT FOUND");
         e.printStackTrace();
@@ -35,6 +27,5 @@ public class EmployeeService {
         e.printStackTrace();
         return List.of();
       }
-      // return employeeRepository.getAllEmployeesFromJPA();
     };
 }
