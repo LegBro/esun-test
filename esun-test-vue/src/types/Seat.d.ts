@@ -1,7 +1,7 @@
 import type Employee from '@/types/Employee'
 export default interface Seat {
   id: string
-  floor: string
+  floorNumber: number
   seatNumber: number
   seatBy: Employee | null
 }
