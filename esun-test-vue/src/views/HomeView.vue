@@ -6,10 +6,14 @@ import SubmitButton from '@/components/general/SubmitButton.vue'
 import LoadingIndicator from '@/components/general/LoadingIndicator.vue'
 import ErrorIndicator from '@/components/general/ErrorIndicator.vue'
 
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import type Seat from '@/types/Seat'
 import type Employee from '@/types/Employee'
+import PageState from '@/types/PageState'
+import EmployeeService from '@/services/EmployeeService'
 
+const initState = ref<PageState>(PageState.loading)
+const updateState = ref<PageState>(PageState.loaded)
 const seats = ref<Seat[] | undefined>()
 const employees = ref<Employee[] | undefined>()
 
@@ -18,10 +22,29 @@ const selectedStaff = ref<string>('')
 const submit = () => {
   console.log('SUBMIT')
 }
+
+// Async Operation
+const fetchData = async () => {
+  if (initState.value != PageState.error) {
+    initState.value = PageState.loading
+  }
+  await EmployeeService.fetchAllEmployee()
+    .then((data) => {
+      employees.value = data
+    })
+    .catch((error) => {
+      initState.value = PageState.error
+    })
+}
+
+onMounted(async () => {
+  // await fetchData();
+})
 </script>
 <template>
   <MainLayout>
     <form
+      v-if="initState === PageState.loaded"
       class="content-area"
       @submit.prevent="
         () => {
@@ -47,6 +70,10 @@ const submit = () => {
       </div>
       <SubmitButton class="submit-btn" type="submit">送出</SubmitButton>
     </form>
+    <div v-else class="indicators">
+      <LoadingIndicator v-if="initState === PageState.loading" />
+      <ErrorIndicator v-if="initState === PageState.error" />
+    </div>
   </MainLayout>
 </template>
 <style scoped lang="scss">
@@ -98,5 +125,11 @@ const submit = () => {
 .submit-btn {
   align-self: flex-end;
 }
+.indicators {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
 </style>
-@/types/Seat
