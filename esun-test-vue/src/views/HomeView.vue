@@ -17,7 +17,7 @@ const updateState = ref<PageState>(PageState.loaded)
 const seats = ref<Seat[] | undefined>()
 const employees = ref<Employee[] | undefined>()
 
-const selectedStaff = ref<string>('')
+const selectedStaff = ref<Employee | undefined>()
 
 const submit = () => {
   console.log('SUBMIT')
@@ -31,14 +31,16 @@ const fetchData = async () => {
   await EmployeeService.fetchAllEmployee()
     .then((data) => {
       employees.value = data
+      initState.value = PageState.loaded
     })
     .catch((error) => {
+      console.log(error)
       initState.value = PageState.error
     })
 }
 
 onMounted(async () => {
-  // await fetchData();
+  await fetchData()
 })
 </script>
 <template>
@@ -63,9 +65,10 @@ onMounted(async () => {
       <div class="form-field">
         <label for="staff-select">選擇欲佈位員工</label>
         <select id="staff-select" v-model="selectedStaff" required>
-          <option value="" disabled>請選擇</option>
-          <option value="staff1">員工1</option>
-          <option value="staff2">員工2</option>
+          <option :value="undefined" disabled>請選擇</option>
+          <option v-for="employee in employees" :key="employee.id" :value="employee">
+            {{ employee.name }}
+          </option>
         </select>
       </div>
       <SubmitButton class="submit-btn" type="submit">送出</SubmitButton>
