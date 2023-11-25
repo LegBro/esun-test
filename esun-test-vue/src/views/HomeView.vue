@@ -6,41 +6,76 @@ import SubmitButton from '@/components/general/SubmitButton.vue'
 import LoadingIndicator from '@/components/general/LoadingIndicator.vue'
 import ErrorIndicator from '@/components/general/ErrorIndicator.vue'
 
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import type Seat from '@/types/Seat'
 import type Employee from '@/types/Employee'
 import PageState from '@/types/PageState'
 import EmployeeService from '@/services/EmployeeService'
+import SeatService from '@/services/SeatService'
 
+// ui
 const initState = ref<PageState>(PageState.loading)
 const updateState = ref<PageState>(PageState.loaded)
+// data
 const seats = ref<Seat[] | undefined>()
 const employees = ref<Employee[] | undefined>()
+const unseatEmployees = computed<Employee[]>(() => {
+  if (employees.value) {
+    return employees.value.filter((employee) => employee.seatId === null)
+  } else {
+    return []
+  }
+})
+// form
+const selectedSeat = ref<Seat | undefined>()
+const selectedEmployee = ref<Employee | undefined>()
 
-const selectedStaff = ref<Employee | undefined>()
+// handler
+const _resetForm = () => {
+  selectedSeat.value = undefined
+  selectedEmployee.value = undefined
+}
+const selectEmployee = (seat: Seat) => {
+  selectedSeat.value = seat
+}
 
 const submit = () => {
   console.log('SUBMIT')
+  _resetForm()
 }
 
 // Async Operation
-const fetchData = async () => {
+const initData = async () => {
   if (initState.value != PageState.error) {
     initState.value = PageState.loading
   }
-  await EmployeeService.fetchAllEmployee()
-    .then((data) => {
-      employees.value = data
-      initState.value = PageState.loaded
-    })
-    .catch((error) => {
-      console.log(error)
-      initState.value = PageState.error
-    })
+  // 設等待時間1000ms，以看清等待圖式
+  setTimeout(async () => {
+    await EmployeeService.fetchAllEmployee()
+      .then((data) => {
+        employees.value = data
+      })
+      .catch((error) => {
+        console.log(error)
+        initState.value = PageState.error
+      })
+    await SeatService.fetchAllSeats()
+      .then((data) => {
+        seats.value = data
+        if (initState.value !== PageState.error) {
+          initState.value = PageState.loaded
+          console.log(data)
+        }
+      })
+      .catch((error) => {
+        console.log(error)
+        initState.value = PageState.error
+      })
+  }, 1000)
 }
 
 onMounted(async () => {
-  await fetchData()
+  await initData()
 })
 </script>
 <template>
@@ -55,18 +90,25 @@ onMounted(async () => {
       "
     >
       <section class="state-hints">
-        <StateHint title="空位" color="#d3d3d3" />
+        <StateHint title="空位" color="#f1f1f1" />
         <StateHint title="已佔用" color="#ff4d4d" />
         <StateHint title="已選擇" color="#7fffd4" />
       </section>
-      <section class="seat-grid">
-        <FloorSeat v-for="n in 16" :key="n" anchor="#staff-select"></FloorSeat>
+      <section v-if="seats" class="seat-grid">
+        <FloorSeat
+          v-for="seat in seats"
+          :key="seat.id"
+          :seat="seat"
+          :selected-seat-id="selectedSeat?.id"
+          anchor="#staff-select"
+          @click="selectEmployee(seat)"
+        ></FloorSeat>
       </section>
       <div class="form-field">
         <label for="staff-select">選擇欲佈位員工</label>
-        <select id="staff-select" v-model="selectedStaff" required>
+        <select id="staff-select" v-model="selectedEmployee" required>
           <option :value="undefined" disabled>請選擇</option>
-          <option v-for="employee in employees" :key="employee.id" :value="employee">
+          <option v-for="employee in unseatEmployees" :key="employee.id" :value="employee">
             {{ employee.name }}
           </option>
         </select>
@@ -81,7 +123,7 @@ onMounted(async () => {
 </template>
 <style scoped lang="scss">
 .bg-normal {
-  background-color: #d3d3d3;
+  background-color: #f1f1f1;
 }
 .bg-disabled {
   background-color: #ff4d4d;

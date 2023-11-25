@@ -1,12 +1,27 @@
 import axios from 'axios'
-import config from '@/services/config'
 import type Seat from '@/types/Seat'
+import type SeatDto from '@/dto/SeatDto'
 export default {
-  async fetchAllSeat(): Promise<Seat[]> {
-    await axios({
-      url: config.BASE_URL,
-      method: 'post'
+  async fetchAllSeats(): Promise<Seat[]> {
+    const responese = await axios({
+      url: '/api/Seating/getAllSeatsWithEmployee',
+      method: 'get'
     })
-    return []
+    const seatDtos = responese.data as Array<SeatDto>
+    return seatDtos.map((dto) => {
+      return {
+        id: dto.floorSeatSeq,
+        floorNumber: dto.floorNo,
+        seatNumber: dto.seatNo,
+        seatBy: dto.employee
+          ? {
+              id: dto.employee.id,
+              name: dto.employee.name,
+              email: dto.employee.email,
+              seatId: dto.employee.floorSeatSeq
+            }
+          : null
+      }
+    })
   }
 }

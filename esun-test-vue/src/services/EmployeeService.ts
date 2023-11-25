@@ -18,10 +18,6 @@ export default {
       }
     })
   },
-  async updateEmployeeSeat() {
-    await axios({
-      url: config.BASE_URL,
-      method: 'post'
-    })
-  }
+
+  async updateEmployeeSeat() {}
 }

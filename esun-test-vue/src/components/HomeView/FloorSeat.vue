@@ -1,13 +1,40 @@
 <script setup lang="ts">
-defineProps<{ anchor?: string }>()
+import type Seat from '@/types/Seat'
+
+defineProps<{ anchor?: string; seat: Seat; selectedSeatId?: string }>()
+defineEmits<{ (event: 'click'): void }>()
 </script>
 <template>
-  <a :href="anchor" class="container">
-    <p>1樓：座位2</p>
-    <p>所屬員工編號：</p>
+  <a
+    :href="anchor"
+    class="container"
+    :class="{
+      'bg-normal': seat.seatBy === null,
+      'bg-disabled': seat.seatBy !== null,
+      'bg-selected': selectedSeatId && seat.id === selectedSeatId
+    }"
+    @click="$emit('click')"
+  >
+    <p>{{ seat.floorNumber }}樓：座位{{ seat.seatNumber }}</p>
+    <p>
+      所屬員工編號：<span>{{ seat.seatBy ? `[${seat.seatBy.id}]${seat.seatBy.name}` : '無' }}</span>
+    </p>
   </a>
 </template>
 <style scoped lang="scss">
+.bg-selected {
+  background-color: #7fffd4;
+}
+.bg-disabled {
+  background-color: #ff4d4d;
+}
+.bg-normal {
+  background-color: #f1f1f1;
+  &:hover {
+    background-color: aquamarine;
+  }
+}
+
 .container {
   padding: 1rem 2rem;
   border-radius: 8px;
@@ -16,7 +43,6 @@ defineProps<{ anchor?: string }>()
   transition-duration: 150ms;
   &:hover {
     cursor: pointer;
-    background-color: aquamarine;
   }
   p {
     font-weight: bold;
