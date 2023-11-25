@@ -10,8 +10,8 @@ defineEmits<{ (event: 'click'): void }>()
     class="container"
     :class="{
       'bg-normal': seat.seatBy === null,
-      'bg-disabled': seat.seatBy !== null,
-      'bg-selected': selectedSeatId && seat.id === selectedSeatId
+      'bg-selected': selectedSeatId && seat.id === selectedSeatId && seat.seatBy === null,
+      'bg-disabled': seat.seatBy !== null
     }"
     @click="$emit('click')"
   >

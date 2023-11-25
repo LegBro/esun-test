@@ -5,6 +5,7 @@ import FloorSeat from '@/components/HomeView/FloorSeat.vue'
 import SubmitButton from '@/components/general/SubmitButton.vue'
 import LoadingIndicator from '@/components/general/LoadingIndicator.vue'
 import ErrorIndicator from '@/components/general/ErrorIndicator.vue'
+import DefaultModal from '@/components/general/modals/DefaultModal.vue'
 
 import { ref, onMounted, computed } from 'vue'
 import type Seat from '@/types/Seat'
@@ -16,6 +17,8 @@ import SeatService from '@/services/SeatService'
 // ui
 const initState = ref<PageState>(PageState.loading)
 const updateState = ref<PageState>(PageState.loaded)
+const showSubmitCheckModal = ref<boolean>(false)
+const showUnseatCheckModal = ref<boolean>(false)
 // data
 const seats = ref<Seat[] | undefined>()
 const employees = ref<Employee[] | undefined>()
@@ -29,22 +32,41 @@ const unseatEmployees = computed<Employee[]>(() => {
 // form
 const selectedSeat = ref<Seat | undefined>()
 const selectedEmployee = ref<Employee | undefined>()
-
-// handler
-const _resetForm = () => {
+// function
+const resetForm = () => {
   selectedSeat.value = undefined
   selectedEmployee.value = undefined
+  updateState.value = PageState.loaded
 }
-const selectEmployee = (seat: Seat) => {
+// handler
+const onEmployeeSelected = (seat: Seat) => {
   selectedSeat.value = seat
+  // 如果選的是已佔用的位置，跳出移除提醒
+  if (seat.seatBy) {
+    showUnseatCheckModal.value = true
+  }
 }
-
-const submit = () => {
-  console.log('SUBMIT')
-  _resetForm()
+const onSubmit = () => {
+  // 確認表單內容已輸入
+  if (selectedEmployee.value && selectedSeat.value) {
+    // 如果選的座位不是空的就警示，反之跳出確認
+    if (selectedSeat.value.seatBy) {
+      // 警示
+    } else {
+      console.log('SUBMIT')
+      showSubmitCheckModal.value = true
+    }
+  }
 }
-
-// Async Operation
+const onSubmitCheckModalClose = () => {
+  resetForm()
+  showSubmitCheckModal.value = false
+}
+const onUnseatCheckModalClose = () => {
+  resetForm()
+  showUnseatCheckModal.value = false
+}
+// request operations
 const initData = async () => {
   if (initState.value != PageState.error) {
     initState.value = PageState.loading
@@ -73,7 +95,35 @@ const initData = async () => {
       })
   }, 1000)
 }
-
+const sendSetSeatRequest = async () => {
+  // 做UPDATE後，若成功則返回，若失敗則讓使用者自己按黑色區塊跳出
+  // 不論成功與否接清空form
+  updateState.value = PageState.loading
+  // 發update api
+  const ifSuccess = (): boolean => true
+  setTimeout(() => {
+    if (ifSuccess()) {
+      updateState.value = PageState.loaded
+      onSubmitCheckModalClose()
+    } else {
+      updateState.value = PageState.error
+    }
+  }, 1000)
+}
+const sendUnseatRequest = async () => {
+  updateState.value = PageState.loading
+  // 發update api
+  const ifSuccess = (): boolean => true
+  setTimeout(() => {
+    if (ifSuccess()) {
+      updateState.value = PageState.loaded
+      onUnseatCheckModalClose()
+    } else {
+      updateState.value = PageState.error
+    }
+  }, 1000)
+}
+// Lifecycle
 onMounted(async () => {
   await initData()
 })
@@ -85,7 +135,7 @@ onMounted(async () => {
       class="content-area"
       @submit.prevent="
         () => {
-          submit()
+          onSubmit()
         }
       "
     >
@@ -101,10 +151,10 @@ onMounted(async () => {
           :seat="seat"
           :selected-seat-id="selectedSeat?.id"
           anchor="#staff-select"
-          @click="selectEmployee(seat)"
+          @click="onEmployeeSelected(seat)"
         ></FloorSeat>
       </section>
-      <div class="form-field">
+      <section class="form-field">
         <label for="staff-select">選擇欲佈位員工</label>
         <select id="staff-select" v-model="selectedEmployee" required>
           <option :value="undefined" disabled>請選擇</option>
@@ -112,7 +162,7 @@ onMounted(async () => {
             {{ employee.name }}
           </option>
         </select>
-      </div>
+      </section>
       <SubmitButton class="submit-btn" type="submit">送出</SubmitButton>
     </form>
     <div v-else class="indicators">
@@ -120,6 +170,63 @@ onMounted(async () => {
       <ErrorIndicator v-if="initState === PageState.error" />
     </div>
   </MainLayout>
+  <!-- Modal -->
+  <Teleport to="body">
+    <!-- Update Modal -->
+    <DefaultModal
+      :key="showSubmitCheckModal.toString()"
+      :show-modal="showSubmitCheckModal"
+      @close="onSubmitCheckModalClose"
+    >
+      <div v-if="updateState === PageState.loaded" class="modal">
+        <p>確定設置位置?</p>
+        <p>
+          員工：{{
+            selectedEmployee?.name ? `${selectedEmployee.name}[${selectedEmployee.id}]` : '...'
+          }}
+        </p>
+        <p>
+          位置：{{
+            selectedSeat ? `${selectedSeat.floorNumber}樓${selectedSeat.seatNumber}號座位` : '...'
+          }}
+        </p>
+        <SubmitButton class="submit-btn" type="button" @click="sendSetSeatRequest"
+          >送出</SubmitButton
+        >
+      </div>
+      <div v-else class="indicators">
+        <LoadingIndicator v-if="updateState === PageState.loading"></LoadingIndicator>
+        <ErrorIndicator v-if="updateState === PageState.error"></ErrorIndicator>
+      </div>
+    </DefaultModal>
+    <!-- DELETE Modal -->
+    <DefaultModal
+      :key="showUnseatCheckModal.toString()"
+      :show-modal="showUnseatCheckModal"
+      @close="onUnseatCheckModalClose"
+    >
+      <div v-if="updateState === PageState.loaded" class="modal">
+        <p>確定<span style="color: red">解除</span>員工座位?</p>
+        <p>
+          員工：{{
+            selectedSeat?.seatBy ? `${selectedSeat.seatBy.name}[${selectedSeat.seatBy.id}]` : '...'
+          }}
+        </p>
+        <p>
+          騰出位置：{{
+            selectedSeat ? `${selectedSeat.floorNumber}樓${selectedSeat.seatNumber}號座位` : '...'
+          }}
+        </p>
+        <SubmitButton class="submit-btn" type="button" @click="sendUnseatRequest"
+          >送出</SubmitButton
+        >
+      </div>
+      <div v-else class="indicators">
+        <LoadingIndicator v-if="updateState === PageState.loading"></LoadingIndicator>
+        <ErrorIndicator v-if="updateState === PageState.error"></ErrorIndicator>
+      </div>
+    </DefaultModal>
+  </Teleport>
 </template>
 <style scoped lang="scss">
 .bg-normal {
@@ -137,7 +244,7 @@ onMounted(async () => {
   flex-direction: column;
   align-items: stretch;
   gap: 2rem;
-  padding: 1rem 8vw;
+  padding: 1rem 2rem;
 }
 .state-hints {
   display: flex;
@@ -176,5 +283,11 @@ onMounted(async () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 </style>
