@@ -6,23 +6,47 @@ import SubmitButton from '@/components/general/SubmitButton.vue'
 import LoadingIndicator from '@/components/general/LoadingIndicator.vue'
 import ErrorIndicator from '@/components/general/ErrorIndicator.vue'
 
-const test = () => {
+import { ref } from 'vue'
+import type Seat from '@/types/Seat'
+import type Employee from '@/types/Employee'
+
+const seats = ref<Seat[] | undefined>()
+const employees = ref<Employee[] | undefined>()
+
+const selectedStaff = ref<string>('')
+
+const submit = () => {
   console.log('SUBMIT')
 }
 </script>
 <template>
   <MainLayout>
-    <div class="content-area">
+    <form
+      class="content-area"
+      @submit.prevent="
+        () => {
+          submit()
+        }
+      "
+    >
       <section class="state-hints">
         <StateHint title="空位" color="#d3d3d3" />
-        <StateHint title="已選擇" color="#ff4d4d" />
-        <StateHint title="已佔用" color="#7fffd4" />
+        <StateHint title="已佔用" color="#ff4d4d" />
+        <StateHint title="已選擇" color="#7fffd4" />
       </section>
-      <div class="seat-grid">
-        <FloorSeat v-for="n in 16" :key="n"></FloorSeat>
+      <section class="seat-grid">
+        <FloorSeat v-for="n in 16" :key="n" anchor="#staff-select"></FloorSeat>
+      </section>
+      <div class="form-field">
+        <label for="staff-select">選擇欲佈位員工</label>
+        <select id="staff-select" v-model="selectedStaff" required>
+          <option value="" disabled>請選擇</option>
+          <option value="staff1">員工1</option>
+          <option value="staff2">員工2</option>
+        </select>
       </div>
-      <SubmitButton class="submit-btn" type="button" @click="test">送出</SubmitButton>
-    </div>
+      <SubmitButton class="submit-btn" type="submit">送出</SubmitButton>
+    </form>
   </MainLayout>
 </template>
 <style scoped lang="scss">
@@ -75,3 +99,4 @@ const test = () => {
   align-self: flex-end;
 }
 </style>
+@/types/Seat

@@ -1,5 +1,5 @@
 @import './base.scss';
-
+@import './utility.scss';
 // 2023 CSS RESET
 *:where(:not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *)) {
   all: unset;
@@ -94,4 +94,9 @@ meter {
 /* Revert Modal native behavior */
 :where(dialog:modal) {
   all: revert;
+}
+
+//
+* {
+  scroll-behavior: smooth;
 }
