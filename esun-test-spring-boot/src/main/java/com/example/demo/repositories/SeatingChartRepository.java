@@ -28,5 +28,4 @@ public class SeatingChartRepository {
             .execute(params);
         return (List<SeatWithEmployee>) result.get("#result-set-1"); 
     }
-    
 }

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.entities.Employee;
+import com.example.demo.fromJson.UpdateSeatModel;
 import com.example.demo.repositories.EmployeeRepository;
 
 @Service
@@ -28,4 +29,14 @@ public class EmployeeService {
         return List.of();
       }
     };
+
+    public int updateSeatOfEmployee(UpdateSeatModel updateSeatModel){
+      try{
+        return employeeRepository.updateSeatOfEmployee(updateSeatModel.getEmployeeId(), updateSeatModel.getSeatId());
+      }catch(SQLException e) {
+        System.out.println("SQL EXCEPTION");
+        e.printStackTrace();
+        return 0;
+      }
+    }
 }

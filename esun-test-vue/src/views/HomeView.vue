@@ -95,31 +95,39 @@ const initData = async () => {
       })
   }, 1000)
 }
-const sendSetSeatRequest = async () => {
+const sendSetSeatRequest = async (employee: Employee, seat: Seat) => {
   // 做UPDATE後，若成功則返回，若失敗則讓使用者自己按黑色區塊跳出
   // 不論成功與否接清空form
   updateState.value = PageState.loading
   // 發update api
-  const ifSuccess = (): boolean => true
-  setTimeout(() => {
-    if (ifSuccess()) {
-      updateState.value = PageState.loaded
-      onSubmitCheckModalClose()
-    } else {
-      updateState.value = PageState.error
-    }
+  setTimeout(async () => {
+    await EmployeeService.updateEmployeeSeat(employee, seat)
+      .then((_) => {
+        updateState.value = PageState.loaded
+        seat.seatBy = employee
+        onSubmitCheckModalClose()
+      })
+      .catch((error) => {
+        console.log(error)
+        updateState.value = PageState.error
+      })
   }, 1000)
 }
-const sendUnseatRequest = async () => {
+const sendUnseatRequest = async (seat: Seat) => {
   updateState.value = PageState.loading
   // 發update api
-  const ifSuccess = (): boolean => true
-  setTimeout(() => {
-    if (ifSuccess()) {
-      updateState.value = PageState.loaded
-      onUnseatCheckModalClose()
-    } else {
-      updateState.value = PageState.error
+  setTimeout(async () => {
+    if (seat.seatBy) {
+      await EmployeeService.updateEmployeeSeat(seat.seatBy, null)
+        .then((_) => {
+          updateState.value = PageState.loaded
+          seat.seatBy = null
+          onUnseatCheckModalClose()
+        })
+        .catch((error) => {
+          console.log(error)
+          updateState.value = PageState.error
+        })
     }
   }, 1000)
 }
@@ -178,7 +186,10 @@ onMounted(async () => {
       :show-modal="showSubmitCheckModal"
       @close="onSubmitCheckModalClose"
     >
-      <div v-if="updateState === PageState.loaded" class="modal">
+      <div
+        v-if="updateState === PageState.loaded && selectedEmployee && selectedSeat"
+        class="modal"
+      >
         <p>確定設置位置?</p>
         <p>
           員工：{{
@@ -190,7 +201,10 @@ onMounted(async () => {
             selectedSeat ? `${selectedSeat.floorNumber}樓${selectedSeat.seatNumber}號座位` : '...'
           }}
         </p>
-        <SubmitButton class="submit-btn" type="button" @click="sendSetSeatRequest"
+        <SubmitButton
+          class="submit-btn"
+          type="button"
+          @click="sendSetSeatRequest(selectedEmployee, selectedSeat)"
           >送出</SubmitButton
         >
       </div>
@@ -205,7 +219,7 @@ onMounted(async () => {
       :show-modal="showUnseatCheckModal"
       @close="onUnseatCheckModalClose"
     >
-      <div v-if="updateState === PageState.loaded" class="modal">
+      <div v-if="updateState === PageState.loaded && selectedSeat" class="modal">
         <p>確定<span style="color: red">解除</span>員工座位?</p>
         <p>
           員工：{{
@@ -217,7 +231,7 @@ onMounted(async () => {
             selectedSeat ? `${selectedSeat.floorNumber}樓${selectedSeat.seatNumber}號座位` : '...'
           }}
         </p>
-        <SubmitButton class="submit-btn" type="button" @click="sendUnseatRequest"
+        <SubmitButton class="submit-btn" type="button" @click="sendUnseatRequest(selectedSeat)"
           >送出</SubmitButton
         >
       </div>
