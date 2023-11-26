@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type Seat from '@/types/Seat'
-
+// props
+// -anchor:控制<a>的滾動目的地
+// -seat:當前seat
+// -selectedSeatId:使用者選擇的座位
 defineProps<{ anchor?: string; seat: Seat; selectedSeatId?: string }>()
 defineEmits<{ (event: 'click'): void }>()
 </script>

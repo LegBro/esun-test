@@ -15,11 +15,19 @@ import EmployeeService from '@/services/EmployeeService'
 import SeatService from '@/services/SeatService'
 
 // ui
+// -initState:畫面初次載入的狀態
+// -updateState:後續進行資料更動的狀態
+// -hintMessage:表單輸入提醒
+// -show***Modal:控制跳出對話框
 const initState = ref<PageState>(PageState.loading)
 const updateState = ref<PageState>(PageState.loaded)
+const hintMessage = ref<string | undefined>()
 const showSubmitCheckModal = ref<boolean>(false)
 const showUnseatCheckModal = ref<boolean>(false)
 // data
+// -seats:所有座位
+// -employees:所有員工
+// -unseatEmployees(應變數):無座位員工
 const seats = ref<Seat[] | undefined>()
 const employees = ref<Employee[] | undefined>()
 const unseatEmployees = computed<Employee[]>(() => {
@@ -30,6 +38,8 @@ const unseatEmployees = computed<Employee[]>(() => {
   }
 })
 // form
+// -selectedSeat:已選座位
+// -selectedEmployee:已選員工
 const selectedSeat = ref<Seat | undefined>()
 const selectedEmployee = ref<Employee | undefined>()
 // function
@@ -38,8 +48,16 @@ const resetForm = () => {
   selectedEmployee.value = undefined
   updateState.value = PageState.loaded
 }
+const resetHint = () => {
+  hintMessage.value = undefined
+}
 // handler
-const onEmployeeSelected = (seat: Seat) => {
+const onSeatSelected = (seat: Seat) => {
+  // 當某座位被選擇
+  // -先清除提示
+  // -若選擇已佔用位置
+  // ---跳出刪除提醒
+  resetHint()
   selectedSeat.value = seat
   // 如果選的是已佔用的位置，跳出移除提醒
   if (seat.seatBy) {
@@ -47,31 +65,40 @@ const onEmployeeSelected = (seat: Seat) => {
   }
 }
 const onSubmit = () => {
-  // 確認表單內容已輸入
+  // 確認表單內容座位跟員工都選了
+  // -若通過
+  // ---跳出確認對話框
+  // -若未通過
+  // ---顯示相應提示
   if (selectedEmployee.value && selectedSeat.value) {
-    // 如果選的座位不是空的就警示，反之跳出確認
     if (selectedSeat.value.seatBy) {
-      // 警示
+      // 不合理情形
+      hintMessage.value = '您透過非正當方式選擇了已佔用位置'
     } else {
-      console.log('SUBMIT')
       showSubmitCheckModal.value = true
     }
+  } else if (!selectedSeat.value) {
+    hintMessage.value = '您未選擇座位'
+  } else {
+    hintMessage.value = '您未選擇員工'
   }
 }
 const onSubmitCheckModalClose = () => {
+  // 當不設置座位時
+  // -收起對話框
   resetForm()
   showSubmitCheckModal.value = false
 }
 const onUnseatCheckModalClose = () => {
+  // 當不解除座位時
+  // -收起對話框
   resetForm()
   showUnseatCheckModal.value = false
 }
 // request operations
 const initData = async () => {
-  if (initState.value != PageState.error) {
-    initState.value = PageState.loading
-  }
-  // 設等待時間1000ms，以看清等待圖式
+  // 讀取所有員工和所有座位
+  // -加上setTimeout是為了看清讀取狀態
   setTimeout(async () => {
     await EmployeeService.fetchAllEmployee()
       .then((data) => {
@@ -86,7 +113,6 @@ const initData = async () => {
         seats.value = data
         if (initState.value !== PageState.error) {
           initState.value = PageState.loaded
-          console.log(data)
         }
       })
       .catch((error) => {
@@ -96,15 +122,20 @@ const initData = async () => {
   }, 1000)
 }
 const sendSetSeatRequest = async (employee: Employee, seat: Seat) => {
-  // 做UPDATE後，若成功則返回，若失敗則讓使用者自己按黑色區塊跳出
-  // 不論成功與否接清空form
+  // 替員工設置座位
+  // - 如果成功
+  // ---將座位Id設置給員工
+  // ---將座位seatBy設置為員工
+  // ---回復畫面
+  // -如果失敗
+  // ---顯示錯誤
   updateState.value = PageState.loading
-  // 發update api
   setTimeout(async () => {
     await EmployeeService.updateEmployeeSeat(employee, seat)
       .then((_) => {
-        updateState.value = PageState.loaded
+        employee.seatId = seat.id
         seat.seatBy = employee
+        updateState.value = PageState.loaded
         onSubmitCheckModalClose()
       })
       .catch((error) => {
@@ -114,13 +145,20 @@ const sendSetSeatRequest = async (employee: Employee, seat: Seat) => {
   }, 1000)
 }
 const sendUnseatRequest = async (seat: Seat) => {
+  // 替員工解除座位
+  // - 如果成功
+  // ---將員工座位設為null
+  // ---將座位員工設為null
+  // ---回復畫面
+  // -如果失敗
+  // ---顯示錯誤
   updateState.value = PageState.loading
-  // 發update api
   setTimeout(async () => {
     if (seat.seatBy) {
       await EmployeeService.updateEmployeeSeat(seat.seatBy, null)
         .then((_) => {
           updateState.value = PageState.loaded
+          seat.seatBy!.seatId = null
           seat.seatBy = null
           onUnseatCheckModalClose()
         })
@@ -159,18 +197,23 @@ onMounted(async () => {
           :seat="seat"
           :selected-seat-id="selectedSeat?.id"
           anchor="#staff-select"
-          @click="onEmployeeSelected(seat)"
+          @click="onSeatSelected(seat)"
         ></FloorSeat>
       </section>
       <section class="form-field">
         <label for="staff-select">選擇欲佈位員工</label>
-        <select id="staff-select" v-model="selectedEmployee" required>
+        <select id="staff-select" v-model="selectedEmployee" @change="resetHint()" required>
           <option :value="undefined" disabled>請選擇</option>
-          <option v-for="employee in unseatEmployees" :key="employee.id" :value="employee">
+          <option
+            v-for="employee in unseatEmployees"
+            :key="employee.id + employee.name"
+            :value="employee"
+          >
             {{ employee.name }}
           </option>
         </select>
       </section>
+      <p v-if="hintMessage" class="hint-message">{{ hintMessage }}</p>
       <SubmitButton class="submit-btn" type="submit">送出</SubmitButton>
     </form>
     <div v-else class="indicators">
@@ -290,6 +333,15 @@ onMounted(async () => {
 }
 .submit-btn {
   align-self: flex-end;
+}
+.hint-message {
+  display: inline-block;
+  align-self: flex-end;
+  padding: 0.5rem 1rem;
+  background-color: rgb(250, 250, 150);
+  font-weight: bold;
+  color: rgb(145, 145, 0);
+  border-radius: 8px;
 }
 .indicators {
   padding: 1rem;
