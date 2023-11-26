@@ -99,6 +99,7 @@ const onUnseatCheckModalClose = () => {
 const initData = async () => {
   // 讀取所有員工和所有座位
   // -加上setTimeout是為了看清讀取狀態
+  // -讀取了Seats之後，將其seatBy綁定至employee物件
   setTimeout(async () => {
     await EmployeeService.fetchAllEmployee()
       .then((data) => {
@@ -111,6 +112,15 @@ const initData = async () => {
     await SeatService.fetchAllSeats()
       .then((data) => {
         seats.value = data
+        if (employees.value) {
+          seats.value.forEach((seat) => {
+            if (seat.seatBy) {
+              seat.seatBy =
+                employees.value?.find((employee) => employee.id === seat.seatBy!.id) ?? null
+            }
+          })
+        }
+
         if (initState.value !== PageState.error) {
           initState.value = PageState.loaded
         }

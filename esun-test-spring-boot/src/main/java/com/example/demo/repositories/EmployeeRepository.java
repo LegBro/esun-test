@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
+import com.example.demo.constants.StoreProcedureNames;
 import com.example.demo.entities.Employee;
 import com.example.demo.repositories.mappers.EmployeeMapper;
 
@@ -24,12 +25,12 @@ public class EmployeeRepository {
     public List<Employee> getAllEmployees() throws ClassNotFoundException,SQLException{
         MapSqlParameterSource params = new MapSqlParameterSource();
         Map<String, Object> result = new SimpleJdbcCall(jdbcTemplate)
-            .withProcedureName("get_all_employees")
+            .withProcedureName(StoreProcedureNames.EMPLOYERR_GET_ALL_EMPLOYEES)
             .withoutProcedureColumnMetaDataAccess()
-            .returningResultSet("#result-set-1", new EmployeeMapper())
+            .returningResultSet("Employees", new EmployeeMapper())
             .execute(params);
 
-        return (List<Employee>) result.get("#result-set-1");
+        return (List<Employee>) result.get("Employees");
 
     }
 
@@ -38,7 +39,7 @@ public class EmployeeRepository {
             .addValue("employeeId", employeeId)
             .addValue("floorSeatSeq", seatId);
         Map<String, Object> result = new SimpleJdbcCall(jdbcTemplate)
-            .withProcedureName("set_seat_of_employee")
+            .withProcedureName(StoreProcedureNames.EMPLOYERR_SET_SEAT_OF_EMPLOYEE)
             .declareParameters(
                 new SqlParameter("employeeId", Types.CHAR),
                 new SqlParameter("floorSeatSeq", Types.VARCHAR),

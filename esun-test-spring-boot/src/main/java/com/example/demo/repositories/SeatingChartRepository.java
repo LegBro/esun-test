@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
+import com.example.demo.constants.StoreProcedureNames;
 import com.example.demo.entities.SeatWithEmployee;
 import com.example.demo.repositories.mappers.SeatWithEmployeeMapper;
 
@@ -22,10 +23,10 @@ public class SeatingChartRepository {
     public List<SeatWithEmployee> getAllSeatingsWithEmployee() throws ClassNotFoundException,SQLException{
         MapSqlParameterSource params = new MapSqlParameterSource();
         Map<String, Object> result = new SimpleJdbcCall(jdbcTemplate)
-            .withProcedureName("get_all_seatings_with_employee")
+            .withProcedureName(StoreProcedureNames.SEATINGCHART_GET_ALL_SEATINGS_WITH_EMPLOYEE)
             .withoutProcedureColumnMetaDataAccess()
-            .returningResultSet("#result-set-1", new SeatWithEmployeeMapper())
+            .returningResultSet("SeatsWithEmployee", new SeatWithEmployeeMapper())
             .execute(params);
-        return (List<SeatWithEmployee>) result.get("#result-set-1"); 
+        return (List<SeatWithEmployee>) result.get("SeatsWithEmployee"); 
     }
 }
