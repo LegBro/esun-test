@@ -38,3 +38,6 @@
 * repositories：資料存取層，和資料庫進行互動。
 * entities：資料庫輸出的對應資料模型。
 * fromJson：由controllers自request接收到的資料型態。
+
+提醒
+* 為了方便提供閱覽者測試，resources > application.properties中已將使用者設定為root
