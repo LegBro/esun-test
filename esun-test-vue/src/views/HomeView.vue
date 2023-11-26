@@ -219,7 +219,7 @@ onMounted(async () => {
             :key="employee.id + employee.name"
             :value="employee"
           >
-            {{ employee.name }}
+            [{{ employee.id }}]{{ employee.name }}
           </option>
         </select>
       </section>
